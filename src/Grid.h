@@ -7,7 +7,7 @@ class Grid {
         int width;
         int height;
 
-        int cellSize = 40;
+        int cellSize = 15;
 
         std::vector<int> gridMatrix;
 

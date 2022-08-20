@@ -1,20 +1,27 @@
 #include "raylib.h"
 #include <math.h>
 #include <iostream>
+#include <vector>
 
 #include "Grid.h"
 #include "Player.h"
+#include "Raycaster.h"
 
 
 int main(void)
 {
 
-    Grid castGrid = Grid(11, 5);
-    Player player = Player(1, 1);
+    Grid castGrid = Grid(20, 20);
+    Player player = Player(3, 1);
+
+    const bool drawGrid = false;
+
+    float fov = 1.5 * acos(0.0);
+    int horizontalRes = 400;
 
     player.playerAngle = 0;
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 20; i++) {
         castGrid.setMatrixItem(i, 0, 1);
         castGrid.setMatrixItem(0, i, 1);
         castGrid.setMatrixItem(i, castGrid.height-1, 1);
@@ -43,24 +50,46 @@ int main(void)
             ClearBackground(RAYWHITE);
 
             DrawText("grid?", 10, 10, 20, DARKGRAY);
-            
+
             int cs = castGrid.cellSize; // CELL SIZE
             int cm = 50; // CELL MARGIN
-
-            for (int x = 0; x < castGrid.width; x++) {
-                for (int y = 0; y < castGrid.height; y++) {
-                    if (castGrid.getMatrixItem(x, y) == 1) {
-                        DrawRectangle(x*cs+cm, y*cs+cm, cs, cs, MAROON);
-                    }
-                }
-            }
 
             float px = player.playerX+0.5;
             float py = player.playerY+0.5;
             float pa = player.playerAngle;
+            
+            if (drawGrid) {
 
-            DrawCircleV({(int)(cm+px*cs), (int)(cm+py*cs)}, 15, YELLOW);
-            DrawLine((int)(cm+px*cs), (int)(cm+py*cs), (int)(cm+(px+cos(pa))*cs), (int)(cm+(py+sin(pa))*cs), BLUE);
+
+                for (int x = 0; x < castGrid.width; x++) {
+                    for (int y = 0; y < castGrid.height; y++) {
+                        if (castGrid.getMatrixItem(x, y) == 1) {
+                            DrawRectangle(x*cs+cm, y*cs+cm, cs, cs, MAROON);
+                        }
+                    }
+                }
+
+
+                DrawCircleV({(int)(cm+px*cs), (int)(cm+py*cs)}, 15, YELLOW);
+
+                for (float i = -1; i < 1; i += 0.01) {
+                    std::vector<float> castCoords = cast(castGrid, px, py, player.playerAngle + i, 0.01, 1000);
+                    DrawLine((int)(cm+px*cs), (int)(cm+py*cs), (int)(cm+castCoords[0]*cs), (int)(cm+castCoords[1]*cs), GREEN);
+                }
+
+                DrawLine((int)(cm+px*cs), (int)(cm+py*cs), (int)(cm+(px+cos(pa))*cs), (int)(cm+(py+sin(pa))*cs), BLUE);
+
+            }
+
+            for (int i = 0; i < horizontalRes; i++) {
+                float angleOffset = ((float) i / horizontalRes) * fov - 0.5 * fov;
+                std::vector<float> castCoords = cast(castGrid, px, py, pa + angleOffset, 0.01, 1000);
+                int screenRectXCoord = screenWidth/horizontalRes * i;
+                float castDistance = calculateDistance(player.playerX, player.playerY, castCoords[0], castCoords[1]);
+                int rectHeight = (int)(1/(castDistance)*400);
+                DrawRectangle(screenRectXCoord, screenHeight/2-rectHeight/2, screenWidth/horizontalRes, rectHeight, MAROON);
+            }
+
 
         EndDrawing();
     }
